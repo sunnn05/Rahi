@@ -1,0 +1,801 @@
+/*
+  RAHI — Road Accident Help India
+  --------------------------------
+  Visual language: deep crimson brand field, condensed bold display type,
+  white rounded cards on a blush ground, bottom tab bar, floating SOS.
+
+  Type: Oswald (condensed, high-impact) for display and controls; the system
+  stack for body copy. Oswald is loaded with font-display:swap and preconnect
+  so it never blocks first paint — the app still opens on one bar of signal,
+  it just starts in the fallback face and swaps when the font lands.
+
+  Tap targets stay >=52px. The tab bar and SOS are fixed so the two critical
+  actions (call, protect) are always one tap away regardless of scroll.
+*/
+
+:root {
+  --crimson: #c8102e;
+  --crimson-deep: #7d0a1c;
+  --crimson-dark: #5a0713;
+  --crimson-bright: #e63946;
+  --ink: #1a1a1a;
+  --ink-2: #2b2b2b;
+  --body: #3c3c3c;
+  --muted: #7a7a7a;
+  --blush: #fdf5f6;
+  --card: #ffffff;
+  --line: #f0e2e4;
+
+  --police: linear-gradient(135deg, #1565c0, #1e88e5);
+  --highway: linear-gradient(135deg, #00897b, #26a69a);
+  --legal: linear-gradient(135deg, #37474f, #546e7a);
+  --whatsapp: linear-gradient(135deg, #2e7d32, #43a047);
+  --maps: linear-gradient(135deg, #1565c0, #42a5f5);
+
+  --r-lg: 18px;
+  --r-md: 14px;
+  --r-pill: 999px;
+
+  --shadow: 0 2px 10px rgba(125, 10, 28, 0.08);
+  --shadow-up: 0 4px 18px rgba(125, 10, 28, 0.16);
+
+  --bar-h: 62px;
+  --appbar-h: 56px;
+
+  --display: "Oswald", "Arial Narrow", system-ui, sans-serif;
+  --text: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  font-family: var(--text);
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--blush);
+  color: var(--body);
+}
+
+button {
+  font: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--crimson);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- app shell ---------- */
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.appbar {
+  height: var(--appbar-h);
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.appbar-name {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.appbar-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--crimson);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.screen {
+  flex: 1;
+  padding-bottom: calc(var(--bar-h) + env(safe-area-inset-bottom, 0px) + 20px);
+}
+
+.pad {
+  padding: 18px 16px 8px;
+}
+
+/* ---------- screen header (non-home) ---------- */
+
+.shead {
+  background: linear-gradient(100deg, var(--crimson-deep), var(--crimson));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.shead h1 {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin: 0 auto;
+  padding-right: 34px;
+}
+
+.shead-back {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex: none;
+}
+
+.shead-back:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ---------- home hero ---------- */
+
+.hero {
+  background: radial-gradient(
+      120% 90% at 50% 12%,
+      var(--crimson) 0%,
+      var(--crimson-deep) 55%,
+      var(--crimson-dark) 100%
+    );
+  color: #fff;
+  padding: 40px 22px 34px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* faint concentric rings, like a signal pulse */
+.hero::before,
+.hero::after {
+  content: "";
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hero::before {
+  width: 340px;
+  height: 340px;
+  top: -70px;
+  right: -110px;
+}
+
+.hero::after {
+  width: 470px;
+  height: 470px;
+  bottom: -220px;
+  left: -150px;
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.hero-mark {
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.hero h1 {
+  font-family: var(--display);
+  font-size: 62px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 0.95;
+  margin: 0 0 10px;
+}
+
+.hero-sub {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  margin: 0 0 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hero-tag {
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 30ch;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* ---------- language pills ---------- */
+
+.langs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 22px 0 0;
+}
+
+.lang {
+  padding: 7px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.12s ease;
+}
+
+.lang[aria-pressed="true"] {
+  background: #fff;
+  color: var(--crimson-deep);
+  border-color: #fff;
+  font-weight: 700;
+}
+
+/* light-ground variant, used on inner screens */
+.langs-light .lang {
+  border-color: var(--line);
+  background: #fff;
+  color: var(--body);
+}
+
+.langs-light .lang[aria-pressed="true"] {
+  border-color: var(--crimson);
+  color: var(--crimson);
+  background: #fff;
+}
+
+.lang-note {
+  margin: 12px auto 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-width: 34ch;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* ---------- primary CTA ---------- */
+
+.cta {
+  width: 100%;
+  margin: 26px 0 22px;
+  min-height: 68px;
+  border-radius: var(--r-lg);
+  background: #fff;
+  color: var(--crimson);
+  font-family: var(--display);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  transition: transform 0.1s ease;
+}
+
+.cta:active {
+  transform: scale(0.98);
+}
+
+/* ---------- hero legal footnote ---------- */
+
+.hero-legal {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 34ch;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.hero-legal strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.hero-legal svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* ---------- cards ---------- */
+
+.card {
+  background: var(--card);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 12px;
+  color: var(--muted);
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+}
+
+.rule::before,
+.rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ---------- contact buttons ---------- */
+
+.contact {
+  width: 100%;
+  min-height: 68px;
+  border-radius: var(--r-lg);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  transition: transform 0.1s ease;
+}
+
+.contact:active {
+  transform: scale(0.985);
+}
+
+.contact-num {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.contact-label {
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.contact-dash {
+  opacity: 0.6;
+  font-size: 20px;
+}
+
+.c-112 {
+  background: linear-gradient(135deg, var(--crimson-deep), var(--crimson-bright));
+}
+.c-police {
+  background: var(--police);
+}
+.c-highway {
+  background: var(--highway);
+}
+.c-legal {
+  background: var(--legal);
+}
+.c-whatsapp {
+  background: var(--whatsapp);
+}
+.c-maps {
+  background: var(--maps);
+}
+
+/* ---------- dispatch message ---------- */
+
+.dispatch {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 15px;
+  background: #fffafa;
+  margin-bottom: 14px;
+}
+
+.dispatch-key {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.dispatch-text {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--body);
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+}
+
+.mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--body);
+}
+
+.mini:active {
+  background: var(--blush);
+}
+
+/* ---------- location strip ---------- */
+
+.loc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.loc-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--blush);
+  color: var(--crimson);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.loc-key {
+  font-family: var(--display);
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  margin: 0 0 2px;
+}
+
+.loc-val {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.loc-note {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 2px 0 0;
+  line-height: 1.45;
+}
+
+.loc-btn {
+  margin-left: auto;
+  flex: none;
+  padding: 9px 14px;
+  border-radius: var(--r-pill);
+  background: var(--crimson);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* ---------- good samaritan card ---------- */
+
+.gs {
+  border: 2px solid #2e7d32;
+  border-radius: var(--r-lg);
+  background: #fff;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.gs-row {
+  margin-bottom: 14px;
+}
+
+.gs-key {
+  font-family: var(--display);
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  margin: 0 0 3px;
+}
+
+.gs-val {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.gs-quote {
+  background: #eef7ee;
+  border-radius: var(--r-md);
+  padding: 14px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1b5e20;
+}
+
+.gs-rights {
+  background: #fff5e6;
+  border-radius: var(--r-md);
+  padding: 14px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #8a5200;
+}
+
+.gs-rights ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.gs-rights li {
+  margin-bottom: 6px;
+}
+
+.gs-helpline {
+  text-align: center;
+  padding-top: 4px;
+}
+
+.gs-helpline .num {
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 600;
+  color: #2e7d32;
+  letter-spacing: 0.03em;
+  display: block;
+}
+
+.gs-helpline .cap {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.gs-notice {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.foot-note {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  text-align: center;
+  margin: 6px 0 0;
+}
+
+/* ---------- placeholder screens ---------- */
+
+.soon {
+  text-align: center;
+  padding: 46px 24px;
+}
+
+.soon-mark {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow);
+  color: var(--crimson);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+}
+
+.soon h2 {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.soon p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 32ch;
+  margin: 0 auto 6px;
+}
+
+.soon-week {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  background: #fff;
+  border: 1px solid var(--line);
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--crimson);
+}
+
+/* ---------- disclaimer ---------- */
+
+.disclaimer {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  background: #fff;
+  border-radius: var(--r-md);
+  padding: 14px;
+  margin: 4px 0 10px;
+}
+
+.disclaimer strong {
+  color: var(--body);
+}
+
+/* ---------- floating SOS ---------- */
+
+.sos {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--bar-h) + env(safe-area-inset-bottom, 0px) + 14px);
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--crimson-bright);
+  color: #fff;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 5px 18px rgba(230, 57, 70, 0.5);
+  z-index: 45;
+}
+
+.sos:active {
+  background: var(--crimson);
+}
+
+/* ---------- bottom tab bar ---------- */
+
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--bar-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #fff;
+  border-top: 1px solid var(--line);
+  display: flex;
+  z-index: 46;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--muted);
+  position: relative;
+}
+
+.tab-label {
+  font-family: var(--display);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+}
+
+.tab[aria-current="page"] {
+  color: var(--crimson);
+}
+
+.tab[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 22%;
+  right: 22%;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--crimson);
+}
