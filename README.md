@@ -1,256 +1,123 @@
-# Road Accident Help — Week 1
+# RAHI — Road Accident Help India
 
-A progressive web app for bystanders at road accidents in India. Week 1 scope:
-get the user to 112, get them their location, and remove the fear that stops
-people from stopping.
+> A progressive web app that gives any bystander at a road accident the tools to act confidently in the first few minutes — before an ambulance arrives.
 
-**This is a student project. It is not a medical device, an emergency service or
-legal advice.**
+**Live demo:** https://rahi-umber.vercel.app/
+**Built by:** Suneha (3rd year CSE)  
+**Stack:** React · Vite · PWA · OpenStreetMap · Web Speech API
 
 ---
 
-## Running it
+## The problem
 
-You need Node 18 or newer. Check with `node -v`.
+India records over 150,000 road accident deaths every year. Most happen in the first hour — the "Golden Hour" — when a bystander is already at the scene but doesn't know what to do, fears legal trouble for helping, or can't find a nearby hospital that accepts cashless government treatment.
+
+RAHI addresses all three barriers in one app that works even without signal.
+
+---
+
+## What it does
+
+### 🚨 One-tap emergency call
+A persistent `tel:112` button on every screen — built as a plain HTML anchor so it works even if the JavaScript fails to load. The 112 operator reaches police, fire, and ambulance in one call.
+
+### 📍 Live location + dispatch message
+Tracks GPS accuracy in real time using `watchPosition` (not `getCurrentPosition`) so the fix tightens over time. Generates a pre-filled dispatch message with coordinates that the bystander can copy and paste into WhatsApp or read aloud to the 112 operator.
+
+### 🏥 Hospital finder
+Shows the nearest PM-JAY / PM RAHAT empanelled hospitals in Bengaluru Urban — manually verified against the official portal (`hospitals.pmjay.gov.in`), sorted by real distance from the user's GPS position. Outside the verified coverage area, a live fallback queries OpenStreetMap (free, no API key) and shows results clearly labelled as unverified, so the app never conflates a government-checked hospital with a raw map result.
+
+### 🩺 Voice + tap triage
+Three ways to describe the accident — tap quick-symptom chips ("Heavy bleeding", "Not waking up"), speak naturally (Web Speech API, free, no key), or type. A keyword classifier extracts victim count, consciousness state, and bleeding severity, then maps the result to pre-written, human-verified first-aid protocol cards sourced from the **Indian First Aid Manual** (St John Ambulance India / Indian Red Cross Society).
+
+The AI classifier never writes what the user reads. It only selects which card to show. The instructions always come from the verified cards — this is a deliberate architectural decision to prevent confident-but-wrong medical advice.
+
+### 🛡️ Good Samaritan protection card
+Generates a timestamped, GPS-stamped record of assistance provided, exportable as a PNG. Displays the bystander's rights under the Motor Vehicles Act 1988 (s.134A) and PM RAHAT cashless treatment scheme — removing the fear of police harassment that stops most people from helping.
+
+### 📵 Works offline
+A Workbox-generated service worker precaches the entire app shell. The rights text, emergency contacts, first-aid cards, and the 112 button all render with zero network access — critical for highway accidents where signal drops out.
+
+---
+
+## Safety architecture
+
+This is the most important design decision in the project.
+
+```
+voice / text / tap
+       ↓
+keyword classifier   ← only extracts facts, never generates advice
+       ↓
+schema validator     ← treats classifier output as untrusted; unknown beats wrong
+       ↓
+protocol selector    ← pure lookup, no generation
+       ↓
+verified cards       ← the ONLY source of instructions a user sees
+```
+
+Every first-aid card is:
+- Sourced from the Indian First Aid Manual (IFAM, 7th ed.)
+- Checked against ANZCOR 2020 guidelines for bleeding
+- Marked `verified: true` in code only after manual cross-check
+- Updated during development when sources contradicted the draft (e.g. limb elevation for bleeding was removed after checking ILCOR evidence)
+
+A wrong triage classification degrades to "unknown", which shows general-care guidance — not a false "everything is fine". The failure mode is cautious, never confident-wrong.
+
+---
+
+## Hospital data pipeline
+
+The hospital dataset was built with a custom pipeline rather than an API:
+
+1. **Overpass API** (free OpenStreetMap query layer) — fetched 271 named hospitals in Bengaluru Urban, filtered to 227 after removing specialty clinics (eye, dental, diagnostic, ayurvedic) using a keyword denylist that handles both English and transliterated terms (e.g. "netralaya")
+2. **Fuzzy name matching** — Jaccard similarity with normalised tokens (stopwords removed, initials collapsed) to cross-reference the OSM results against the PM-JAY portal list
+3. **Manual verification** — each of the 10 seed hospitals confirmed individually on `hospitals.pmjay.gov.in`
+4. **Distance-sorted at runtime** using the Haversine formula against the live GPS fix
+
+This approach costs nothing (no Google Maps API, no billing account) and produced a more defensible dataset than a live API call would — you know exactly what's in it and when it was checked.
+
+---
+
+## Tech stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Framework | React + Vite | Fast build, PWA plugin support |
+| Offline | vite-plugin-pwa + Workbox | Auto-generates service worker; precaches app shell |
+| Maps / hospitals | OpenStreetMap + Overpass API | Free, no API key, no billing account |
+| Voice | Web Speech API | Free, built into Chrome/Edge/Safari |
+| Icons | lucide-react | Lightweight, consistent, no external files |
+| Deployment | Vercel | Auto-deploys on every git push |
+
+No paid APIs. No backend server. No database.
+
+---
+
+## Running locally
 
 ```bash
+git clone https://github.com/sunnn05/Rahi.git
+cd Rahi
 npm install
-npm run dev
+npm run dev        # development (service worker not active)
+npm run build
+npm run preview    # production build with offline support
 ```
 
-Open the URL it prints. Then, to see it as it will actually be used:
-
-1. DevTools → Toggle device toolbar → pick a phone size.
-2. Sensors panel → set a custom GPS location. Browsers block real geolocation
-   on plain `http://` from anything but `localhost`.
-
-Test on your actual phone too — thumb reach and sunlight legibility cannot be
-judged on a laptop:
-
-```bash
-npm run dev -- --host
-```
-
-Open the network URL on your phone, on the same WiFi. Geolocation will be
-blocked over plain HTTP, so use `npx localtunnel --port 5173` or deploy to
-Vercel to get HTTPS.
+To test offline: open DevTools → Application → Service Workers → confirm "activated and running" → Network tab → tick Offline → reload.
 
 ---
 
-## What is in here
+## Known limitations (honest)
 
-```
-src/
-├── App.jsx                     screen switching, holds the GPS fix
-├── hooks/useGeolocation.js     watchPosition wrapper with accuracy + errors
-├── data/rights.js              legal content as reviewable data, never generated
-└── components/
-    ├── CallStrip.jsx           fixed tel:112 link, present on every screen
-    ├── LocationPanel.jsx       permission flow, coordinates, share sheet
-    └── SamaritanCard.jsx       timestamped record, exported via html2canvas
-```
+- **Hospital data covers Bengaluru Urban only.** Outside this area the live Overpass fallback runs, clearly labelled as unverified.
+- **Keyword classifier is English-only.** Voice in other languages transcribes correctly but won't match English keywords — safely returns "unknown" and shows general care.
+- **First-aid cards verified against published sources, not reviewed by a certified instructor in person.** The multiple-victims card in particular should be confirmed against IFAM section N.6 before real deployment.
+- **Voice needs a connection.** Chrome's Web Speech API sends audio to Google's servers. Text input and all protocol cards work offline.
 
 ---
 
-## Week 1 checklist
+## Disclaimer
 
-- [x] Vite + React scaffold
-- [x] PWA manifest and viewport meta
-- [x] `tel:112` strip fixed to the bottom of every screen
-- [x] Geolocation with live accuracy and honest failure states
-- [x] Share location via Web Share API, clipboard fallback
-- [x] Good Samaritan record card with GPS and timestamp
-- [x] PNG export with html2canvas
-- [x] Visible student-project disclaimer
-- [ ] **Verify every line in `src/data/rights.js`** against the current MoRTH
-      text and the Motor Vehicles Act. Do this before you show anyone.
-- [ ] Add real `icon-192.png` and `icon-512.png` to `public/`
-- [ ] Service worker so the app opens with no signal (see below)
-- [ ] Test on a real phone, outdoors, in sunlight
-
----
-
-## Two things to fix before week 2
-
-**The app does not work offline yet.** The manifest makes it installable, not
-offline-capable. You need a service worker. Do not write one by hand — add
-`vite-plugin-pwa`, which generates one:
-
-```bash
-npm install -D vite-plugin-pwa
-```
-
-Register it in `vite.config.js` with `registerType: "autoUpdate"`. Verify by
-loading the app, ticking "Offline" in the DevTools Network panel, and
-reloading. If the rights list and the 112 button still appear, you are done.
-
-**html2canvas is 190 kB of a 400 kB bundle.** It is only needed on the card
-screen. Load it lazily so the first screen stays fast:
-
-```js
-const html2canvas = (await import("html2canvas")).default;
-```
-
-Move that inside the `save` function and drop the top-level import.
-
----
-
-## Design decisions worth defending in a demo
-
-Interviewers and judges ask "why". Short answers:
-
-- **Why a `tel:` link and not a button?** It works even if React fails to
-  hydrate. The one critical action has no JavaScript dependency.
-- **Why `watchPosition` instead of `getCurrentPosition`?** The first fix is
-  often a network fix accurate to kilometres. GPS tightens over ~20 seconds. At
-  a crash, that difference picks the wrong hospital.
-- **Why show the accuracy number?** So the user can judge whether to trust it,
-  instead of the app pretending to a precision it does not have.
-- **Why the system font stack?** No webfont request means no blocking network
-  call on first paint. The app has to open on one bar of signal.
-- **Why is the legal text in a data file?** So it can be reviewed, cited and
-  translated as a unit, and so it can never be generated at runtime by a model.
-- **Why "record" and not "certificate" or "proof"?** A PNG is not legal proof
-  of anything. Claiming otherwise would mislead someone at the worst moment.
-
----
-
-## Sources to verify
-
-- Motor Vehicles Act 1988, s.134A — Good Samaritan protection
-- Motor Vehicles Act 1988, s.162 — cashless treatment
-- MoRTH Good Samaritan guidelines — https://morth.nic.in/good-samaritan
-- PM RAHAT scheme (launched February 2026) — ₹1.5 lakh, 7 days, at designated
-  hospitals
-
----
-
-## HOSPITAL tab (week 2)
-
-Reads `src/data/hospitals.js` — a manually verified seed list of 10 PM-JAY
-empanelled hospitals in Bengaluru Urban, built via the Overpass + fuzzy-match
-pipeline (kept as separate scripts outside this app; see the
-`hospital-matching` toolkit from this project's build log if you have it).
-
-**This is not a live API.** Outside Bengaluru Urban, the list will just show
-far-away hospitals — that's honest behavior for an unfinished dataset, not a
-bug. Expanding coverage means running the matching pipeline again for other
-districts and appending verified entries to `hospitals.js`.
-
-**Before treating any entry as current:** PM-JAY empanelment changes over
-time. `HOSPITALS_LAST_VERIFIED` records when the list was checked against
-the official portal — update it whenever you re-verify, and don't let it go
-stale silently.
-
-One entry (`Narayana Institute of Cardiac Sciences`) has `approxLocation:
-true` because its coordinates came from an address lookup rather than a
-direct GPS pin — confirm it against Google Maps before relying on it for
-real navigation.
-
----
-
-## Live hospital fallback (dynamic location support)
-
-The HOSPITAL tab now has two data sources, kept visually distinct on purpose:
-
-1. **Verified seed list** (`src/data/hospitals.js`) — the 10 Bengaluru Urban
-   hospitals checked by hand against the PM-JAY portal. Shown with a green
-   check badge.
-2. **Live Overpass lookup** (`src/lib/overpass.js`) — fetched only when
-   needed, shown with an amber warning badge and the text "Not verified for
-   PM-JAY". This can find a hospital anywhere, but carries no empanelment
-   guarantee — it's raw OpenStreetMap data run through the same specialty
-   filter as the offline matching scripts, nothing more.
-
-**When the live search fires:**
-
-- Automatically offered (not automatically run) when the user's nearest
-  verified hospital is more than 15km away — a signal they're likely outside
-  Bengaluru Urban.
-- Available as a manual "Also search OpenStreetMap" button even inside the
-  covered area, for extra options.
-- Never runs on every GPS update. It's tap-triggered and cached in memory
-  for 10 minutes per ~1km grid cell, so moving slightly or re-opening the tab
-  doesn't spam the request.
-
-**Why not just always use live data?** Because only the seed list has been
-checked against the actual PM-JAY portal. Live results can't carry that
-guarantee, and blurring the two together would mean the app claiming cashless
-treatment somewhere that was never verified — worse than saying nothing.
-
-**Extending coverage properly:** the right fix for the 15km limitation isn't
-a bigger live-fetch radius — it's running the Week 2 matching pipeline
-(`test-overpass.js` + `match-hospitals.js`) again for another district and
-adding verified entries to `hospitals.js`. That keeps the "verified" badge
-meaning something.
-
----
-
-## Triage tab (week 3) — free version, no API key
-
-The TRIAGE tab reads a description of the accident and shows the matching
-first-aid protocol cards. It has three inputs, all feeding one pipeline:
-
-- **Tap chips** — "Heavy bleeding", "Not waking up", "Several hurt". Fastest
-  in a panic, no typing.
-- **Voice** — the browser's built-in Web Speech API (free, no key). Works in
-  Chrome/Edge/Safari; needs a connection (Chrome sends audio to Google to
-  transcribe). Falls back gracefully to typing where unsupported.
-- **Text box** — always available.
-
-### The safety architecture (important)
-
-The classifier NEVER writes the advice a user sees. It only decides which
-pre-written, human-verified cards from `src/data/protocols.js` to show. The
-flow is:
-
-```
-description → classify → validate → select protocol cards → display
-             (keyword)   (schema)    (pure lookup)
-```
-
-- `src/lib/keywordClassifier.js` — spots keywords, fills the schema. Dumb on
-  purpose: when unsure it returns "unknown", never a guess.
-- `src/lib/triageSchema.js` — validates the classification. Treats classifier
-  output as untrusted; strips anything unexpected; every failure falls back to
-  all-"unknown" → general-care card. A hallucinated "advice" field would be
-  silently discarded here.
-- `src/data/protocols.js` — the ONLY source of instructions shown to a user.
-
-### Swapping in a paid LLM later
-
-The keyword classifier is one function returning one schema. To upgrade to a
-real LLM (smarter at understanding phrasing), replace `classifyByKeywords`
-with an API call that returns the same shape — nothing else changes. The free
-version is a complete, safe product on its own; the LLM is an optional
-accuracy upgrade, not a requirement.
-
-### Known limitations (say these in a demo)
-
-- Keyword matching misses phrasings it wasn't given words for — by design it
-  then shows general care rather than guessing wrong.
-- English keywords only. Voice in other languages transcribes fine but won't
-  match keywords yet, so it safely returns "unknown".
-- Voice needs a connection; text and the offline protocol cards do not.
-
----
-
-## Triage pictures (revised)
-
-**Card category headers, not how-to drawings.** Each first-aid card has a
-bold, colour-coded header with a clear icon (blood-drop = bleeding, etc.) from
-lucide-react. An earlier attempt drew the actual techniques (recovery position,
-applying pressure) as custom SVGs, but a drawing of a *technique* is a sequence
-and reads ambiguously at icon size — and a misread first-aid diagram is
-dangerous. So the icon names the emergency category; the verified numbered
-steps carry the real instructions. No external image files, no attribution,
-identical rendering everywhere, works offline.
-
-**Photo → tap what you see → vetted steps + send to 112.** There is no free
-image-AI, and even a paid one judging injuries from a blurry phone photo is the
-exact confident-but-wrong failure this app is built to avoid. So the human does
-the seeing: after adding a photo, the bystander taps what they observe (the
-same safe tap-flags), which drives the verified protocol cards — fully offline.
-The photo itself is attached and shared with the 112 operator / responders, who
-are trained to read it. Online or offline, the first-aid steps always come from
-the human-verified cards, never from image analysis.
+RAHI is a student project. It is not a certified medical device, an emergency service, or legal advice. Always call 112 first. The first-aid steps are sourced from the Indian First Aid Manual and are provided for general guidance only.
